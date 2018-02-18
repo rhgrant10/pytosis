@@ -30,3 +30,6 @@ class Muscle:
 
 
 
+git staticmethodgit staticmethoasd
+
+d
