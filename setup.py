@@ -14,6 +14,8 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'Click>=6.0',
     # TODO: Put package requirements here
+    'pyglet>=1.3.1',
+    'pymunk>=5.3.2'
 ]
 
 setup_requirements = [
