@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import random
 
-from itertools import zip_longest
+from itertools import zip_longest, cycle
 
 
 class Gene:
@@ -29,7 +29,7 @@ class Gene:
     @classmethod
     def from_random(cls):
         # Init the Gene with a random number 31 to 32 bits long
-        return cls(bin(random.randint(2 ** 31, 2 ** 32))[2:])
+        return cls(bin(random.randint(2 ** 31, 2 ** 64))[2:])
 
     @classmethod
     def from_creature(cls, creature):
@@ -96,14 +96,14 @@ class Creature:
     def __init__(self, gene):
         self.genes = gene
         self.parts = []
-        len_features = len(self.features)
+        cycle_features = cycle(self.features)
         codons = []
         for i, codon in enumerate(self.genes):
-            cls = self.features[i % len_features]
             codons.append(codon)
 
             # If the codon ends with a one, read the next one
             if codon[-1] != '1':
+                cls = next(cycle_features)
                 self.parts.append(cls.from_codons(''.join(codons)))
                 codons = []
 
