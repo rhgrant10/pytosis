@@ -13,7 +13,7 @@ def draw_cirlce(x, y, r, points=16):
     step = 2 * math.pi / points
     gl.glBegin(gl.GL_TRIANGLE_FAN)
     gl.glVertex2f(x, y)
-    for theta in [i * step for i in range(points)]:
+    for theta in [i * step for i in range(points + 1)]:
         gl.glVertex2f(x + r * math.cos(theta),
                       y + r * math.sin(theta))
     gl.glEnd()
@@ -89,6 +89,7 @@ class Creature:
             muscle.build(space)
 
     def draw(self):
+        gl.glColor4f(0, 0, 0, 1)
         for obj in self.nodes + self.muscles:
             obj.draw()
 
@@ -100,6 +101,7 @@ class SimulationWindow(pyglet.window.Window):
         self.space = pymunk.Space()
         self.space.gravity = 0, -900
         self.objects = []
+        self.label = pyglet.text.Label('Press [X] to exit', x=10, y=10, color=(0, 0, 0, 255))
         gl.glClearColor(1, 0, 0, 1)
 
     def add_object(self, *objects):
@@ -109,13 +111,10 @@ class SimulationWindow(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-        gl.glLoadIdentity()
-        width, height = self.get_size()
-        draw_cirlce(width // 2, height // 2, r=min(width, height) // 4)
         self.draw_ground()
         for obj in self.objects:
             obj.draw()
+        self.label.draw()
 
     def on_key_press(self, symbol, modifiers):
         if symbol == key.X:

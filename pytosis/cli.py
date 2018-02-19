@@ -15,28 +15,24 @@ def pairwise(iterable):
     return zip(a, b)
 
 
-def create_simulation(n):
-    platform = pyglet.window.get_platform()
-    display = platform.get_default_display()
-    screen = display.get_default_screen()
+def create_simulation(n, fullscreen=True):
+    config = pyglet.gl.Config(double_buffer=True)
+    window = SimulationWindow(fullscreen=fullscreen, config=config)
+    w, h = window.get_size()
 
-    template = pyglet.gl.Config(alpha_size=8)
-    config = screen.get_best_config(template)
-    context = config.create_context(None)
-
-    nodes = [Node.from_random() for __ in range(n)]
+    nodes = [Node.from_random(max_x=w // 2, max_y=h // 2) for __ in range(n)]
     muscles = [Muscle.from_random(a, b) for a, b in pairwise(nodes)]
     creature = Creature(nodes=nodes, muscles=muscles)
 
-    window = SimulationWindow(fullscreen=False, context=context)
     window.add_object(creature)
     pyglet.clock.schedule(window.update)
 
 
 @click.command()
+@click.option('--fullscreen/--no-fullscreen', default=True)
 @click.option('--n', default=5)
-def main(n):
-    create_simulation(n)
+def main(n, fullscreen):
+    create_simulation(n, fullscreen)
     pyglet.app.run()
 
 
