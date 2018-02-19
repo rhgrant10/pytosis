@@ -52,6 +52,9 @@ class Feature:
     """
     parameters = {}
 
+    def __init__(self, *args):
+        self.parameters = dict(zip(self.parameters, args))
+
     def to_codon(self):
         """
         FIXME: The algo for doing this is hard if possible...
@@ -84,11 +87,6 @@ class Node(Feature):
         "friction": None
     }
 
-    def __init__(self, radius, weight, friction):
-        self.parameters['radius'] = radius
-        self.parameters['weight'] = weight
-        self.parameters['friction'] = friction
-
 
 class Muscle(Feature):
     """
@@ -101,11 +99,6 @@ class Muscle(Feature):
         "group": None
     }
 
-    def __init__(self, strength, length, group):
-        self.parameters['strength'] = strength
-        self.parameters['length'] = length
-        self.parameters['group'] = group
-
 
 class Flagellum(Feature):
     """
@@ -116,10 +109,6 @@ class Flagellum(Feature):
         "strength": None,
         "length": None
     }
-
-    def __init__(self, strength, length):
-        self.parameters['strength'] = strength
-        self.parameters['length'] = length
 
 
 class Creature:
