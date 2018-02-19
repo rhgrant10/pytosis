@@ -45,6 +45,20 @@ class Gene:
 
 
 class Feature:
+    """
+    Base class for all organism features like nodes and muscles.
+    Who knows what features may be invented later?
+
+    """
+    parameters = {}
+
+    def to_codon(self):
+        """
+        FIXME: The algo for doing this is hard if possible...
+        :return:
+        """
+        pass
+
     @staticmethod
     def codons_to_values(codons, num_vals):
         size = len(codons) // num_vals
@@ -52,47 +66,78 @@ class Feature:
             yield int(codons[i * size:size * (i + 1)], 2) + 1
 
     @classmethod
-    def from_codons(cls, codons):
-        return cls(*cls.codons_to_values(codons, 3))
+    def from_codons(cls, codons, count):
+        return cls(*cls.codons_to_values(codons, count))
 
 
 class Node(Feature):
     """
     Nodes have radius, weight and friction.
+
     """
+    parameters = {
+        "radius": None,
+        "weight": None,
+        "friction": None
+    }
 
     def __init__(self, radius, weight, friction):
-        self.radius = radius
-        self.weight = weight
-        self.friction = friction
-
-    def to_codon(self):
-        pass
+        self.parameters['radius'] = radius
+        self.parameters['weight'] = weight
+        self.parameters['friction'] = friction
 
     @classmethod
-    def from_codons(cls, codons):
+    def from_codons(cls, codons, count):
         print(f"Node <{codons}>")
-        radius, weight, friction = cls.codons_to_values(codons, 3)
+        radius, weight, friction = cls.codons_to_values(codons, count)
         print(f"radius {radius}, weight: {weight}, friction: {friction}")
         return cls(radius, weight, friction)
 
 
 class Muscle(Feature):
     """
+    Muscles have strength, length and a group they belong to.
 
     """
+    parameters = {
+        "strength": None,
+        "length": None,
+        "group": None
+    }
 
     def __init__(self, strength, length, group):
-        self.strength = strength
-        self.length = length
-        self.group = group
+        self.parameters['strength'] = strength
+        self.parameters['length'] = length
+        self.parameters['group'] = group
 
     @classmethod
-    def from_codons(cls, codons):
+    def from_codons(cls, codons, count):
         print(f"Muscle <{codons}>")
-        strength, length, group = cls.codons_to_values(codons, 3)
+        strength, length, group = cls.codons_to_values(codons, count)
         print(f"strength {strength}, length: {length}, group: {group}")
         return cls(strength, length, group)
+
+
+class Flagellum(Feature):
+    """
+    Flagella have strength and length
+
+    """
+    parameters = {
+        "strength": None,
+        "length": None
+    }
+
+    def __init__(self, strength, length):
+        self.parameters['strength'] = strength
+        self.parameters['length'] = length
+
+    @classmethod
+    def from_codons(cls, codons, count):
+        print(f"Flagellum <{codons}>")
+        strength, length = cls.codons_to_values(codons, count)
+        print(f"strength {strength}, length: {length}")
+        return cls(strength, length)
 
 
 class Creature:
@@ -111,10 +156,13 @@ class Creature:
         for i, codon in enumerate(self.genes):
             codons.append(codon)
 
-            # If the codon ends with a one, read the next one
+            # If the codon ends with a one, read the next one.
+            # Else, create the feature and add it to the organism.
             if codon[-1] != '1':
                 cls = next(cycle_features)
-                self.features.append(cls.from_codons(''.join(codons)))
+                self.features.append(
+                    cls.from_codons(''.join(codons), len(cls.parameters)))
+
                 codons = []
 
     @classmethod
@@ -122,5 +170,14 @@ class Creature:
         return cls(Gene.from_random())
 
 
+class Swimmer(Creature):
+    """
+    This is how an organism with Flagella might look.
+
+    """
+    possible_features = [Node, Flagellum, Muscle]
+
+
 if __name__ == "__main__":
     Creature.from_random()
+    Swimmer.from_random()
