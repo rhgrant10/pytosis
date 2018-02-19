@@ -29,28 +29,38 @@ class Gene:
     @classmethod
     def from_random(cls):
         # Init the Gene with a random number 31 to 32 bits long
-        return cls(bin(random.randint(2 ** 31, 2 ** 64))[2:])
+        number = random.randint(2 ** 31, 2 ** 64)
+        sequence = bin(number)[2:]
+        print(f"Making Gene from random number {number}")
+        print(f"Sequence: {sequence}")
+
+        return cls(sequence)
 
     @classmethod
     def from_creature(cls, creature):
-        return [feature.to_codon for feature in creature.features]
+        return [feature.to_codon() for feature in creature.features]
 
     def to_creature(self):
         return Creature(self)
 
 
-class CodonsToValuesMixin:
+class Feature:
     @staticmethod
     def codons_to_values(codons, num_vals):
         size = len(codons) // num_vals
         for i in range(num_vals):
             yield int(codons[i * size:size * (i + 1)], 2) + 1
 
+    @classmethod
+    def from_codons(cls, codons):
+        return cls(*cls.codons_to_values(codons, 3))
 
-class Node(CodonsToValuesMixin):
+
+class Node(Feature):
     """
     Nodes have radius, weight and friction.
     """
+
     def __init__(self, radius, weight, friction):
         self.radius = radius
         self.weight = weight
@@ -67,7 +77,7 @@ class Node(CodonsToValuesMixin):
         return cls(radius, weight, friction)
 
 
-class Muscle(CodonsToValuesMixin):
+class Muscle(Feature):
     """
 
     """
@@ -91,12 +101,12 @@ class Creature:
     Node-Muscle-Node-Muscle...
 
     """
-    features = [Node, Muscle]
+    possible_features = [Node, Muscle]
 
     def __init__(self, gene):
         self.genes = gene
-        self.parts = []
-        cycle_features = cycle(self.features)
+        self.features = []
+        cycle_features = cycle(self.possible_features)
         codons = []
         for i, codon in enumerate(self.genes):
             codons.append(codon)
@@ -104,7 +114,7 @@ class Creature:
             # If the codon ends with a one, read the next one
             if codon[-1] != '1':
                 cls = next(cycle_features)
-                self.parts.append(cls.from_codons(''.join(codons)))
+                self.features.append(cls.from_codons(''.join(codons)))
                 codons = []
 
     @classmethod
