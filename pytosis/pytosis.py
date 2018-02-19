@@ -67,7 +67,10 @@ class Feature:
 
     @classmethod
     def from_codons(cls, codons, count):
-        return cls(*cls.codons_to_values(codons, count))
+        print(f"{cls.__name__} from {codons}")
+        values = list(cls.codons_to_values(codons, count))
+        print(", ".join(f"{k}: {v}" for k, v in zip(cls.parameters, values)))
+        return cls(*values)
 
 
 class Node(Feature):
@@ -86,13 +89,6 @@ class Node(Feature):
         self.parameters['weight'] = weight
         self.parameters['friction'] = friction
 
-    @classmethod
-    def from_codons(cls, codons, count):
-        print(f"Node <{codons}>")
-        radius, weight, friction = cls.codons_to_values(codons, count)
-        print(f"radius {radius}, weight: {weight}, friction: {friction}")
-        return cls(radius, weight, friction)
-
 
 class Muscle(Feature):
     """
@@ -110,13 +106,6 @@ class Muscle(Feature):
         self.parameters['length'] = length
         self.parameters['group'] = group
 
-    @classmethod
-    def from_codons(cls, codons, count):
-        print(f"Muscle <{codons}>")
-        strength, length, group = cls.codons_to_values(codons, count)
-        print(f"strength {strength}, length: {length}, group: {group}")
-        return cls(strength, length, group)
-
 
 class Flagellum(Feature):
     """
@@ -131,13 +120,6 @@ class Flagellum(Feature):
     def __init__(self, strength, length):
         self.parameters['strength'] = strength
         self.parameters['length'] = length
-
-    @classmethod
-    def from_codons(cls, codons, count):
-        print(f"Flagellum <{codons}>")
-        strength, length = cls.codons_to_values(codons, count)
-        print(f"strength {strength}, length: {length}")
-        return cls(strength, length)
 
 
 class Creature:
