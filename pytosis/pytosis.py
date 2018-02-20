@@ -1,8 +1,27 @@
 # -*- coding: utf-8 -*-
-import json
+import time
 import random
-
+import math
 from itertools import zip_longest, cycle
+
+import pymunk
+import pyglet
+from pyglet import gl
+from pyglet.window import key
+
+CODON_WIDTH = 8
+LOWER_BOUND_ORDER = 64
+UPPER_BOUND_ORDER = 128
+
+
+def draw_circle(x, y, r, points=16):
+    step = 2 * math.pi / points
+    gl.glBegin(gl.GL_TRIANGLE_FAN)
+    gl.glVertex2f(x, y)
+    for theta in [i * step for i in range(points + 1)]:
+        gl.glVertex2f(x + r * math.cos(theta),
+                      y + r * math.sin(theta))
+    gl.glEnd()
 
 
 class Gene:
@@ -13,7 +32,7 @@ class Gene:
 
     """
 
-    def __init__(self, sequence, unit_size=4):
+    def __init__(self, sequence, unit_size=CODON_WIDTH):
         self.sequence = sequence
         self.unit_size = unit_size
 
@@ -28,9 +47,9 @@ class Gene:
             yield ''.join(codon)
 
     @classmethod
-    def from_random(cls, unit_size=4):
-        # Init the Gene with a random number 31 to 32 bits long
-        number = random.randint(2 ** 31, 2 ** 64)
+    def from_random(cls, unit_size=CODON_WIDTH,
+                    lower=LOWER_BOUND_ORDER, upper=UPPER_BOUND_ORDER):
+        number = random.randint(2 ** lower, 2 ** upper)
         sequence = bin(number)[2:]
         print(f"Making Gene from random number {number}")
         print(f"Sequence: {sequence}")
@@ -92,11 +111,38 @@ class Node(Feature):
     Nodes have radius, weight and friction.
 
     """
+    resolution = 16
     parameters = {
+        "x": None,
+        "y": None,
         "radius": None,
-        "weight": None,
+        "mass": None,
         "friction": None
     }
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        moment = pymunk.moment_for_circle(self.parameters['mass'], 0,
+                                          self.parameters['radius'])
+        self.body = pymunk.Body(self.parameters['mass'], moment)
+        self.body.position = self.parameters['x'], self.parameters['y']
+        self.shape = pymunk.Circle(self.body, self.parameters['radius'])
+        self.shape.friction = self.parameters['friction']
+
+    # @classmethod
+    # def from_random(cls, max_x=100, max_y=100, max_r=15, max_m=100, max_f=2):
+    #     x = random.random() * max_x + 100
+    #     y = random.random() * max_y + 100
+    #     r = random.random() * max_r
+    #     m = random.random() * max_m
+    #     f = random.random() * max_f
+    #     return cls(position=(x, y), mass=m, radius=r, friction=f)
+
+    def build(self, space):
+        space.add(self.body, self.shape)
+
+    def draw(self):
+        draw_circle(*self.body.position, self.shape.radius, self.resolution)
 
 
 class Muscle(Feature):
@@ -105,10 +151,38 @@ class Muscle(Feature):
 
     """
     parameters = {
-        "strength": None,
-        "length": None,
-        "group": None
+        "a": None,
+        "b": None,
+        "period": None,
+        "stiffness": None,
+        "damping": None
     }
+
+    # @classmethod
+    # def from_random(cls, a, b, max_p=60, max_s=10, max_d=1):
+    #     p = random.random() * max_p
+    #     s = random.random() * max_s
+    #     d = random.random() * max_d
+    #     return cls(a=a.body, b=b.body, period=p, stiffness=s, damping=d)
+
+    def build(self, space):
+        space.add(self.constraint)
+
+    @property
+    def ideal_length(self):
+        return 0 if self.is_contracting() else self.rest_length
+
+    def is_contracting(self):
+        return (time.time() % self.parameters['period']) / \
+               self.parameters['period'] < .5
+
+    def draw(self):
+        start = self.constraint.a.position + self.constraint.anchor_a
+        end = self.constraint.b.position + self.constraint.anchor_b
+        gl.glBegin(gl.GL_LINES)
+        gl.glVertex2f(*start)
+        gl.glVertex2f(*end)
+        gl.glEnd()
 
 
 class Flagellum(Feature):
@@ -185,6 +259,28 @@ class Creature:
         self.features.append(
             feature.from_codon(codon, len(feature.parameters)))
 
+    def build(self, space):
+        self.connect_muscles()
+        for feature in self.features:
+            feature.build(space)
+
+    def connect_muscles(self):
+        nodes = self.features[::2]
+        muscles = self.features[1::2]
+        for muscle in muscles:
+            a = nodes[muscle.parameters['a'] % len(nodes)].body
+            b = nodes[muscle.parameters['b'] % len(nodes)].body
+            muscle.rest_length = a.position.get_distance(b.position)
+            muscle.constraint = pymunk.DampedSpring(a, b, (0, 0), (0, 0),
+                                                    muscle.rest_length,
+                                                    muscle.parameters['stiffness'],
+                                                    muscle.parameters['damping'])
+
+    def draw(self):
+        gl.glColor4f(0, 0, 0, 1)
+        for obj in self.features:
+            obj.draw()
+
 
 class Swimmer(Creature):
     """
@@ -193,3 +289,44 @@ class Swimmer(Creature):
     """
     possible_features = [Node, Flagellum, Muscle]
 
+
+class SimulationWindow(pyglet.window.Window):
+    def __init__(self, *args, **kwargs):
+        # kwargs['fullscreen'] = True
+        super().__init__(*args, **kwargs)
+        self.space = pymunk.Space()
+        self.space.gravity = 0, -900
+        self.objects = []
+        self.label = pyglet.text.Label('Press [X] to exit', x=10, y=10,
+                                       color=(0, 0, 0, 255))
+        gl.glClearColor(1, 0, 0, 1)
+
+    def add_object(self, *objects):
+        self.objects.extend(objects)
+        for obj in objects:
+            obj.build(self.space)
+
+    def on_draw(self):
+        self.clear()
+        self.draw_ground()
+        for obj in self.objects:
+            obj.draw()
+        self.label.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == key.X:
+            self.close()
+
+    def update(self, dt):
+        self.space.step(dt)
+
+    def draw_ground(self):
+        width, height = self.get_size()
+        gl.glColor4f(0, 1, 0, 1)
+        gl.glBegin(gl.GL_QUADS)
+        gl.glVertex2f(0, 0)
+        gl.glVertex2f(0, 100)
+        gl.glVertex2f(width, 100)
+        gl.glVertex2f(width, 0)
+        gl.glEnd()
+        gl.glColor4f(1, 1, 1, 1)
