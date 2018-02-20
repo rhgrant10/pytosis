@@ -32,9 +32,9 @@ class Gene:
 
     """
 
-    def __init__(self, sequence, unit_size=CODON_WIDTH):
+    def __init__(self, sequence, codon_width=CODON_WIDTH):
         self.sequence = sequence
-        self.unit_size = unit_size
+        self.codon_width = codon_width
 
     def __iter__(self):
         """
@@ -42,18 +42,19 @@ class Gene:
         FIXME: Should this be zero-filled at the end? Cuz it is.
 
         """
-        seq = [self.sequence[x::self.unit_size] for x in range(self.unit_size)]
+        seq = [self.sequence[x::self.codon_width]
+               for x in range(self.codon_width)]
         for codon in zip_longest(*seq, fillvalue="0"):
             yield ''.join(codon)
 
     @classmethod
-    def from_random(cls, unit_size=CODON_WIDTH,
+    def from_random(cls, codon_width=CODON_WIDTH,
                     lower=LOWER_BOUND_ORDER, upper=UPPER_BOUND_ORDER):
         number = random.randint(2 ** lower, 2 ** upper)
         sequence = bin(number)[2:]
         print(f"Making Gene from random number {number}")
         print(f"Sequence: {sequence}")
-        return cls(sequence, unit_size=unit_size)
+        return cls(sequence, codon_width=codon_width)
 
     @classmethod
     def from_creature(cls, creature):
@@ -129,15 +130,6 @@ class Node(Feature):
         self.shape = pymunk.Circle(self.body, self.parameters['radius'])
         self.shape.friction = self.parameters['friction']
 
-    # @classmethod
-    # def from_random(cls, max_x=100, max_y=100, max_r=15, max_m=100, max_f=2):
-    #     x = random.random() * max_x + 100
-    #     y = random.random() * max_y + 100
-    #     r = random.random() * max_r
-    #     m = random.random() * max_m
-    #     f = random.random() * max_f
-    #     return cls(position=(x, y), mass=m, radius=r, friction=f)
-
     def build(self, space):
         space.add(self.body, self.shape)
 
@@ -157,13 +149,6 @@ class Muscle(Feature):
         "stiffness": None,
         "damping": None
     }
-
-    # @classmethod
-    # def from_random(cls, a, b, max_p=60, max_s=10, max_d=1):
-    #     p = random.random() * max_p
-    #     s = random.random() * max_s
-    #     d = random.random() * max_d
-    #     return cls(a=a.body, b=b.body, period=p, stiffness=s, damping=d)
 
     def build(self, space):
         space.add(self.constraint)
@@ -220,7 +205,7 @@ class Creature:
         :param gene:
         """
         if gene:
-            self._from_gene(gene, features or [])
+            self._from_gene(gene)
         elif features:
             self._from_features(features)
         else:
@@ -234,12 +219,16 @@ class Creature:
             yield k, v
 
     @classmethod
-    def from_random(cls):
-        return cls(Gene.from_random())
+    def from_random(cls, codon_width=CODON_WIDTH):
+        return cls(Gene.from_random(codon_width=codon_width))
 
-    def _from_gene(self, gene, features):
-        self.gene = gene
-        self.features = features
+    def _from_gene(self, gene):
+        if type(gene) == Gene:
+            self.gene = gene
+        else:
+            self.gene = Gene(sequence=gene)
+
+        self.features = []
         self._cycle_features = cycle(self.possible_features)
         codon = ''
         for unit in self.gene:
@@ -292,7 +281,6 @@ class Swimmer(Creature):
 
 class SimulationWindow(pyglet.window.Window):
     def __init__(self, *args, **kwargs):
-        # kwargs['fullscreen'] = True
         super().__init__(*args, **kwargs)
         self.space = pymunk.Space()
         self.space.gravity = 0, -900
