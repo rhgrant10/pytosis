@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
 import random
-import math
 from itertools import zip_longest, cycle
 
 import pymunk
@@ -9,19 +8,12 @@ import pyglet
 from pyglet import gl
 from pyglet.window import key
 
+from . import utils
+
+
 CODON_WIDTH = 8
 LOWER_BOUND_ORDER = 64
 UPPER_BOUND_ORDER = 128
-
-
-def draw_circle(x, y, r, points=16):
-    step = 2 * math.pi / points
-    gl.glBegin(gl.GL_TRIANGLE_FAN)
-    gl.glVertex2f(x, y)
-    for theta in [i * step for i in range(points + 1)]:
-        gl.glVertex2f(x + r * math.cos(theta),
-                      y + r * math.sin(theta))
-    gl.glEnd()
 
 
 class Gene:
@@ -134,7 +126,8 @@ class Node(Feature):
         space.add(self.body, self.shape)
 
     def draw(self):
-        draw_circle(*self.body.position, self.shape.radius, self.resolution)
+        x, y = self.body.position
+        utils.draw_circle(x, y, self.shape.radius, self.resolution)
 
 
 class Muscle(Feature):
