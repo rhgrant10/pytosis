@@ -151,8 +151,9 @@ class Muscle(Feature):
         return 0 if self.is_contracting() else self.rest_length
 
     def is_contracting(self):
-        return (time.time() % self.parameters['period']) / \
-               self.parameters['period'] < .5
+        time_slice = time.time() % self.parameters['period']
+        alpha = time_slice / self.parameters['period']
+        return alpha < .5
 
     def draw(self):
         start = self.constraint.a.position + self.constraint.anchor_a
