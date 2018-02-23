@@ -6,7 +6,6 @@ from itertools import cycle
 import pymunk
 from pyglet import gl
 
-
 from . import settings
 from . import utils
 
@@ -194,7 +193,8 @@ class Muscle(Feature):
     }
 
     def build(self, space):
-        space.add(self.constraint)
+        if self.constraint:
+            space.add(self.constraint)
 
     @property
     def ideal_length(self):
@@ -299,14 +299,17 @@ class Creature:
     def connect_muscles(self):
         nodes = self.filter_features(Node)
         muscles = self.filter_features(Muscle)
-        for muscle in muscles:
-            a = nodes[muscle.parameters['a'] % len(nodes)].body
-            b = nodes[muscle.parameters['b'] % len(nodes)].body
-            muscle.rest_length = a.position.get_distance(b.position)
-            muscle.constraint = pymunk.DampedSpring(a, b, (0, 0), (0, 0),
-                                                    muscle.rest_length,
-                                                    muscle.parameters['stiffness'],
-                                                    muscle.parameters['damping'])
+        if nodes and muscles:
+            for muscle in muscles:
+                a = nodes[muscle.parameters['a'] % len(nodes)].body
+                b = nodes[muscle.parameters['b'] % len(nodes)].body
+                muscle.rest_length = a.position.get_distance(b.position)
+                muscle.constraint = pymunk.DampedSpring(a, b, (0, 0), (0, 0),
+                                                        muscle.rest_length,
+                                                        muscle.parameters[
+                                                            'stiffness'],
+                                                        muscle.parameters[
+                                                            'damping'])
 
     def draw(self):
         gl.glColor4f(0, 0, 0, 1)
