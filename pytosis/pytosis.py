@@ -8,52 +8,97 @@ import pyglet
 from pyglet import gl
 from pyglet.window import key
 
+from . import settings
 from . import utils
 
 
-CODON_WIDTH = 8
-LOWER_BOUND_ORDER = 64
-UPPER_BOUND_ORDER = 128
+class InsufficientEntropyError(ValueError):
+    pass
 
 
-class Gene:
+class Rna:
     """
-    Sequence is expected to be a sequence of ones and zeros as a string.
-    Makes it easier for coding for now.
-    Genetic sequences go in even rotation for now. Node-Muscle-Node
+    Each bit represents a base. Thus DNA is a sequence of
+    bits, together taken as an integer. Every 4 bits
+    is a codon, where a codon can come in 2 types:
+
+      1. numeric codon (nibble values 0 - 9)
+      2. separator codon (nibble values 10-15)
+
+    There is a special type of separator codon known as
+    the stop codon, which has nibble value 15. Finding
+    3 stop codons in a row signifies the end of the DNA
+    sequence.
 
     """
-
-    def __init__(self, sequence, codon_width=CODON_WIDTH):
+    def __init__(self, sequence):
         self.sequence = sequence
-        self.codon_width = codon_width
 
     def __iter__(self):
         """
-        Iterating a Gene yields its codons.
-        FIXME: Should this be zero-filled at the end? Cuz it is.
+        Shortcut to read codons.
 
         """
-        seq = [self.sequence[x::self.codon_width]
-               for x in range(self.codon_width)]
-        for codon in zip_longest(*seq, fillvalue="0"):
-            yield ''.join(codon)
+        for codon in self.read():
+            yield codon
 
     @classmethod
-    def from_random(cls, codon_width=CODON_WIDTH,
-                    lower=LOWER_BOUND_ORDER, upper=UPPER_BOUND_ORDER):
-        number = random.randint(2 ** lower, 2 ** upper)
-        sequence = bin(number)[2:]
-        print(f"Making Gene from random number {number}")
-        print(f"Sequence: {sequence}")
-        return cls(sequence, codon_width=codon_width)
+    def _find_start(cls, sequence):
+        starts = 0
+        for index, gene in enumerate(sequence):
+            if cls.is_separator(gene):
+                starts += 1
+            else:
+                starts = 0
+            if starts > 2:
+                return index
 
     @classmethod
-    def from_creature(cls, creature):
-        return [feature.to_codon() for feature in creature.features]
+    def read_to_stop(cls, sequence):
+        values = []
+        stops = 0
+        for gene in sequence:
+            if cls.is_separator(gene):
+                if values:
+                    yield int(''.join(values))
+                    values = []
+                    stops = 0
+                elif cls.is_stop(gene):
+                    # stop when more than 2 stops consecutively
+                    stops += 1
+                    if stops == settings.STOPS_NEEDED:
+                        print('STOP found')
+                        return
+            else:
+                stops = 0
+                values.append(str(gene))
+        print('No stop found!')
 
-    def to_creature(self):
-        return Creature(self)
+    def get_start(self):
+        return self.__class__._find_start(iter(self.sequence))
+
+    def read(self):
+        sequence = iter(self.sequence)
+        self.__class__._find_start(sequence)
+        return self.__class__.read_to_stop(sequence)
+
+    @classmethod
+    def is_separator(cls, codon):
+        return codon > settings.MAX_CODON
+
+    @classmethod
+    def is_stop(cls, codon):
+        return codon == settings.STOP_CODON
+
+    @classmethod
+    def from_random(cls):
+        sequence = []
+        for __ in range(settings.GENE_COUNT):
+            sequence.append(random.getrandbits(settings.CODON_WIDTH))
+        r = random.randint(10, 20)
+        sequence[-r:] = [settings.STOP_CODON] * r
+
+        return cls(sequence)
 
 
 class Feature:
@@ -64,7 +109,8 @@ class Feature:
     """
     parameters = {}
 
-    def __init__(self, *args):
+    def __init__(self, codon, *args):
+        self.codon = codon
         self.parameters = dict(zip(self.parameters, args))
 
     def __iter__(self):
@@ -72,31 +118,36 @@ class Feature:
 
     def to_codon(self):
         """
-        FIXME: The algo for doing this is hard if possible...
-        :return:
+        Fixed ;)
         """
-        pass
+        return self.codon
 
     @staticmethod
     def codon_to_values(codon, num_vals):
         """
-        Takes any length binary string and returns a generator of int
-        values based on an even division of the bits, omitting
+        Takes an int and converts it to a binary string and returns a
+        generator of int values based on an even-ish division of the bits.
 
-        :param codon: a sequence of 1s and 0s
+        :param codon: int
         :param num_vals: how many values to unpack
         :return: a generator of ints num_vals in length
         """
+        codon = bin(codon)[2:]
         size = len(codon) // num_vals
         for i in range(num_vals):
-            yield int(codon[i * size:size * (i + 1)], 2) + 1
+            try:
+                yield int(codon[i * size:size * (i + 1)], 2) + 1
+            except ValueError as e:
+                print(f'Codon {codon} lacks sufficient '
+                      f'entropy ({num_vals}) for feature - dropping.')
+                raise InsufficientEntropyError()
 
     @classmethod
     def from_codon(cls, codon, count):
         print(f"{cls.__name__} from {codon}")
         values = list(cls.codon_to_values(codon, count))
         print(", ".join(f"{k}: {v}" for k, v in zip(cls.parameters, values)))
-        return cls(*values)
+        return cls(codon, *values)
 
 
 class Node(Feature):
@@ -213,26 +264,22 @@ class Creature:
             yield k, v
 
     @classmethod
-    def from_random(cls, codon_width=CODON_WIDTH):
-        return cls(Gene.from_random(codon_width=codon_width))
+    def from_random(cls):
+        return cls(Rna.from_random())
 
     def _from_gene(self, gene):
-        if type(gene) == Gene:
+        if type(gene) == Rna:
             self.gene = gene
         else:
-            self.gene = Gene(sequence=gene)
+            self.gene = Rna(sequence=gene)
 
         self.features = []
         self._cycle_features = cycle(self.possible_features)
-        codon = ''
-        for unit in self.gene:
-            codon += unit
-            if unit[-1] != '1':
+        for codon in self.gene:
+            try:
                 self.make_feature(codon)
-                codon = ''
-
-        if codon:
-            self.make_feature(codon)
+            except InsufficientEntropyError:
+                continue
 
     def _from_features(self, features):
         self.features = features
