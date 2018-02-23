@@ -28,8 +28,8 @@ class Rna:
     the stop codon, which has nibble value 15. Finding
     3 stop codons in a row signifies the end of the DNA
     sequence.
-
     """
+
     def __init__(self, sequence):
         self.sequence = sequence
 
@@ -168,7 +168,7 @@ class Node(Feature):
         moment = pymunk.moment_for_circle(self.parameters['mass'], 0,
                                           self.parameters['radius'])
         self.body = pymunk.Body(self.parameters['mass'], moment)
-        self.body.position = self.parameters['x'] + 250, self.parameters['y'] + 250
+        self.body.position = self.parameters['x'], self.parameters['y']
         self.shape = pymunk.Circle(self.body, self.parameters['radius'])
         self.shape.friction = self.parameters['friction']
 
@@ -255,6 +255,9 @@ class Creature:
         else:
             raise Exception("No gene or features specified.")
 
+    def filter_features(self, type_):
+        return [f for f in self.features if type(f) == type_]
+
     def __iter__(self):
         keys = "features", "gene"
         features = [dict(feature) for feature in self.features]
@@ -294,8 +297,8 @@ class Creature:
             feature.build(space)
 
     def connect_muscles(self):
-        nodes = [f for f in self.features if type(f) == Node]
-        muscles = [f for f in self.features if type(f) == Muscle]
+        nodes = self.filter_features(Node)
+        muscles = self.filter_features(Muscle)
         for muscle in muscles:
             a = nodes[muscle.parameters['a'] % len(nodes)].body
             b = nodes[muscle.parameters['b'] % len(nodes)].body
@@ -309,6 +312,10 @@ class Creature:
         gl.glColor4f(0, 0, 0, 1)
         for obj in self.features:
             obj.draw()
+
+    def move(self, x, y):
+        for node in self.filter_features(Node):
+            node.body.position += x, y
 
 
 class Swimmer(Creature):

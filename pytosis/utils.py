@@ -12,15 +12,19 @@ class SimulationWindow(pyglet.window.Window):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.space = pymunk.Space()
-        # self.space.gravity = 0, -900
+        self.space.gravity = 0, -90
         self.objects = []
         self.label = pyglet.text.Label('Press [X] to exit', x=10, y=10,
                                        color=(0, 0, 0, 255))
         gl.glClearColor(1, 0, 0, 1)
 
     def add_object(self, *objects):
+        w, h = self.get_size()
+        dx = w // 2
+        dy = h
         self.objects.extend(objects)
         for obj in objects:
+            obj.move(dx, dy)
             obj.build(self.space)
 
     def on_draw(self):
@@ -65,8 +69,16 @@ def pairwise(iterable):
     return zip(a, b)
 
 
+def add_creature(huh, window, creatures):
+    print('Creatures left: ', len(creatures))
+    creature = creatures.pop(0)
+    window.add_object(creature)
+    print('Creature {} added'.format(creature))
+
+
 def create_simulation(creatures, fullscreen=True):
     config = gl.Config(double_buffer=True)
     window = SimulationWindow(fullscreen=fullscreen, config=config)
-    window.add_object(*creatures)
+    add_creature(None, window, creatures)
+    clock.schedule_interval(add_creature, .5, window, creatures)
     clock.schedule(window.update)
