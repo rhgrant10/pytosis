@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import time
 import random
-from itertools import zip_longest, cycle
+from itertools import cycle
 
 import pymunk
-import pyglet
 from pyglet import gl
-from pyglet.window import key
+
 
 from . import settings
 from . import utils
@@ -295,8 +294,8 @@ class Creature:
             feature.build(space)
 
     def connect_muscles(self):
-        nodes = self.features[::2]
-        muscles = self.features[1::2]
+        nodes = [f for f in self.features if type(f) == Node]
+        muscles = [f for f in self.features if type(f) == Muscle]
         for muscle in muscles:
             a = nodes[muscle.parameters['a'] % len(nodes)].body
             b = nodes[muscle.parameters['b'] % len(nodes)].body
@@ -320,42 +319,3 @@ class Swimmer(Creature):
     possible_features = [Node, Flagellum, Muscle]
 
 
-class SimulationWindow(pyglet.window.Window):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.space = pymunk.Space()
-        self.space.gravity = 0, -900
-        self.objects = []
-        self.label = pyglet.text.Label('Press [X] to exit', x=10, y=10,
-                                       color=(0, 0, 0, 255))
-        gl.glClearColor(1, 0, 0, 1)
-
-    def add_object(self, *objects):
-        self.objects.extend(objects)
-        for obj in objects:
-            obj.build(self.space)
-
-    def on_draw(self):
-        self.clear()
-        self.draw_ground()
-        for obj in self.objects:
-            obj.draw()
-        self.label.draw()
-
-    def on_key_press(self, symbol, modifiers):
-        if symbol == key.X:
-            self.close()
-
-    def update(self, dt):
-        self.space.step(dt)
-
-    def draw_ground(self):
-        width, height = self.get_size()
-        gl.glColor4f(0, 1, 0, 1)
-        gl.glBegin(gl.GL_QUADS)
-        gl.glVertex2f(0, 0)
-        gl.glVertex2f(0, 100)
-        gl.glVertex2f(width, 100)
-        gl.glVertex2f(width, 0)
-        gl.glEnd()
-        gl.glColor4f(1, 1, 1, 1)
