@@ -12,7 +12,7 @@ class SimulationWindow(pyglet.window.Window):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.space = pymunk.Space()
-        self.space.gravity = 0, -900
+        # self.space.gravity = 0, -900
         self.objects = []
         self.label = pyglet.text.Label('Press [X] to exit', x=10, y=10,
                                        color=(0, 0, 0, 255))

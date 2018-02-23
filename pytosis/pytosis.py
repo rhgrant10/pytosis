@@ -168,7 +168,7 @@ class Node(Feature):
         moment = pymunk.moment_for_circle(self.parameters['mass'], 0,
                                           self.parameters['radius'])
         self.body = pymunk.Body(self.parameters['mass'], moment)
-        self.body.position = self.parameters['x'], self.parameters['y']
+        self.body.position = self.parameters['x'] + 250, self.parameters['y'] + 250
         self.shape = pymunk.Circle(self.body, self.parameters['radius'])
         self.shape.friction = self.parameters['friction']
 
@@ -317,5 +317,3 @@ class Swimmer(Creature):
 
     """
     possible_features = [Node, Flagellum, Muscle]
-
-
