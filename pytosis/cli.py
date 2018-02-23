@@ -6,7 +6,7 @@ import itertools
 import click
 import pyglet
 
-from .pytosis import Gene, Node, Muscle, Creature, SimulationWindow
+from .pytosis import Gene, Creature, SimulationWindow
 
 
 def pairwise(iterable):
@@ -15,7 +15,7 @@ def pairwise(iterable):
     return zip(a, b)
 
 
-def create_simulation(n, fullscreen=True, codon_width):
+def create_simulation(n, fullscreen=True):
     config = pyglet.gl.Config(double_buffer=True)
     window = SimulationWindow(fullscreen=fullscreen, config=config)
     w, h = window.get_size()
