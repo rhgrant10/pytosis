@@ -15,7 +15,7 @@ def pairwise(iterable):
     return zip(a, b)
 
 
-def create_simulation(n, fullscreen=True):
+def create_simulation(n, fullscreen=True, codon_width=8):
     config = pyglet.gl.Config(double_buffer=True)
     window = SimulationWindow(fullscreen=fullscreen, config=config)
     w, h = window.get_size()
