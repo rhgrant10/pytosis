@@ -24,14 +24,6 @@ def make_simulation(n, fullscreen):
     pyglet.app.run()
 
 
-@main.command()
-@click.option('--count', default=1, help='Number of creatures to make.')
-def make_creature(count):
-    """Simple demo to show pytosis in action."""
-    for _ in range(count):
-        click.echo(dict(Creature.from_random()))
-
-
 if __name__ == "__main__":
     import sys
 

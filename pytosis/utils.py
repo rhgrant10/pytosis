@@ -80,5 +80,5 @@ def create_simulation(creatures, fullscreen=True):
     config = gl.Config(double_buffer=True)
     window = SimulationWindow(fullscreen=fullscreen, config=config)
     add_creature(None, window, creatures)
-    clock.schedule_interval(add_creature, .5, window, creatures)
+    clock.schedule_interval(add_creature, 2, window, creatures)
     clock.schedule(window.update)
