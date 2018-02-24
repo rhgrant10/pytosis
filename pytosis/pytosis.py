@@ -21,11 +21,11 @@ class Node:
         self.shape.friction = friction
 
     @classmethod
-    def from_random(cls, max_x=100, max_y=100, max_r=15, max_m=100, max_f=2):
-        x = random.random() * max_x + 100
-        y = random.random() * max_y + 100
-        r = random.random() * max_r
-        m = random.random() * max_m
+    def from_random(cls, max_x=100, max_y=100, max_r=15, max_m=75, max_f=2):
+        x = random.random() * max_x
+        y = random.random() * max_y
+        r = random.random() * max_r + 5
+        m = random.random() * max_m + 25
         f = random.random() * max_f
         return cls(position=(x, y), mass=m, radius=r, friction=f)
 
@@ -33,8 +33,13 @@ class Node:
         space.add(self.body, self.shape)
 
     def draw(self):
-        gl.glColor3f(1, self.shape.friction / 2, 1)
-        utils.draw_circle(*self.body.position, self.shape.radius, self.resolution)
+        f = self.shape.friction / 2
+        gl.glColor4f(1, f, f, 1)
+        utils.draw_circle(*self.body.position, self.shape.radius)
+
+        gl.glLineWidth(3)
+        gl.glColor4f(.9, .1, .1, 1)
+        utils.draw_circle(*self.body.position, self.shape.radius, fill=False)
 
 
 class Muscle:

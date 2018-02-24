@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import math
+from math import pi, cos, sin
 import itertools
 
 import pymunk
@@ -14,7 +14,7 @@ class SimulationWindow(pyglet.window.Window):
         self.space = pymunk.Space()
         self.space.gravity = 0, -90
         self.objects = []
-        self.label = pyglet.text.Label('Press [X] to exit', x=10, y=10,
+        self.label = pyglet.text.Label('Press [Q] to exit', x=10, y=10,
                                        color=(0, 0, 0, 255))
         gl.glClearColor(0, 0, 0, 1)
 
@@ -35,7 +35,7 @@ class SimulationWindow(pyglet.window.Window):
         self.label.draw()
 
     def on_key_press(self, symbol, modifiers):
-        if symbol == key.X:
+        if symbol == key.Q:
             self.close()
 
     def update(self, dt):
@@ -52,14 +52,34 @@ class SimulationWindow(pyglet.window.Window):
         gl.glEnd()
 
 
-def draw_circle(x, y, r, points=16):
-    step = 2 * math.pi / points
+def fill_circle(x, y, r, num_points=None):
+    points = num_points or int(r * 1.6)
+    step = 2 * pi / points
     gl.glBegin(gl.GL_TRIANGLE_FAN)
     gl.glVertex2f(x, y)
     for theta in [i * step for i in range(points + 1)]:
-        gl.glVertex2f(x + r * math.cos(theta),
-                      y + r * math.sin(theta))
+        gl.glVertex2f(x + r * cos(theta),
+                      y + r * sin(theta))
     gl.glEnd()
+
+
+def stroke_circle(x, y, r, num_points=None):
+    points = num_points or int(r * 1.6)
+    step = 2 * pi / points
+    angles = [i * step for i in range(points)]
+    points = [(x + r * cos(t), y + r * sin(t)) for t in angles]
+
+    gl.glBegin(gl.GL_LINE_LOOP)
+    for x, y in points:
+        gl.glVertex2f(x, y)
+    gl.glEnd()
+
+
+def draw_circle(*args, fill=True, **kwargs):
+    if fill:
+        return fill_circle(*args, **kwargs)
+    else:
+        return stroke_circle(*args, **kwargs)
 
 
 def pairwise(iterable):
@@ -77,8 +97,10 @@ def add_creature(huh, window, creatures):
 
 
 def create_simulation(creatures, fullscreen=True):
-    config = gl.Config(double_buffer=True)
+    config = gl.Config(alpha_size=8, double_buffer=True)
     window = SimulationWindow(fullscreen=fullscreen, config=config)
+    gl.glEnable(gl.GL_BLEND)
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
     add_creature(None, window, creatures)
     clock.schedule_interval(add_creature, 2, window, creatures)
     clock.schedule(window.update)
