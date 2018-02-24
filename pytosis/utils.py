@@ -16,7 +16,7 @@ class SimulationWindow(pyglet.window.Window):
         self.objects = []
         self.label = pyglet.text.Label('Press [X] to exit', x=10, y=10,
                                        color=(0, 0, 0, 255))
-        gl.glClearColor(1, 0, 0, 1)
+        gl.glClearColor(0, 0, 0, 1)
 
     def add_object(self, *objects):
         w, h = self.get_size()
@@ -43,14 +43,13 @@ class SimulationWindow(pyglet.window.Window):
 
     def draw_ground(self):
         width, height = self.get_size()
-        gl.glColor4f(0, 1, 0, 1)
+        gl.glColor4f(.3, .3, .3, 1)
         gl.glBegin(gl.GL_QUADS)
         gl.glVertex2f(0, 0)
         gl.glVertex2f(0, 100)
         gl.glVertex2f(width, 100)
         gl.glVertex2f(width, 0)
         gl.glEnd()
-        gl.glColor4f(1, 1, 1, 1)
 
 
 def draw_circle(x, y, r, points=16):
@@ -70,10 +69,11 @@ def pairwise(iterable):
 
 
 def add_creature(huh, window, creatures):
-    print('Creatures left: ', len(creatures))
-    creature = creatures.pop(0)
-    window.add_object(creature)
-    print('Creature {} added'.format(creature))
+    try:
+        creature = creatures.pop(0)
+        window.add_object(creature)
+    except Exception:
+        print(f'Failed to add a creature: {creature}')
 
 
 def create_simulation(creatures, fullscreen=True):

@@ -33,6 +33,7 @@ class Node:
         space.add(self.body, self.shape)
 
     def draw(self):
+        gl.glColor3f(1, self.shape.friction / 2, 1)
         utils.draw_circle(*self.body.position, self.shape.radius, self.resolution)
 
 
@@ -62,6 +63,8 @@ class Muscle:
     def draw(self):
         start = self.constraint.a.position + self.constraint.anchor_a
         end = self.constraint.b.position + self.constraint.anchor_b
+        gl.glLineWidth(self.constraint.stiffness)
+        gl.glColor3f(self.constraint.damping, 1, 1)
         gl.glBegin(gl.GL_LINES)
         gl.glVertex2f(*start)
         gl.glVertex2f(*end)
@@ -80,8 +83,7 @@ class Creature:
             muscle.build(space)
 
     def draw(self):
-        gl.glColor4f(0, 0, 0, 1)
-        for obj in self.nodes + self.muscles:
+        for obj in self.muscles + self.nodes:
             obj.draw()
 
     def move(self, x, y):
@@ -92,13 +94,10 @@ class Creature:
     def from_random(cls, max_nodes=None):
         max_nodes = max_nodes or settings.MAX_NODES
         num_nodes = random.randint(3, max_nodes)
-        print(f"num_nodes {num_nodes}")
         num_muscles = random.randint(num_nodes, sum(range(num_nodes)))
-        nodes = [Node.from_random() for _ in range(num_nodes)]
 
+        nodes = [Node.from_random() for _ in range(num_nodes)]
         muscle_pairs = list(combinations(nodes, 2))
-        print(f'Creating {num_nodes} nodes with {num_muscles} muscles and we '
-              f'have {len(muscle_pairs)} muscle pairs')
 
         muscles = []
         for a, b in random.sample(muscle_pairs, num_muscles):
